@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>컴동 블로그 — HTML만으로 만드는 로컬 프로토타입</title>
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --panel: #121319;
+      --muted: #8a8f98;
+      --text: #e8ecf1;
+      --accent: #5ac8fa;
+      --accent-2: #7c4dff;
+      --danger: #ff4976;
+      --border: #1e2230;
+      --shadow: 0 8px 24px rgba(0,0,0,.4);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, Apple SD Gothic Neo, "Pretendard Variable", "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 800px at 80% -100px, rgba(92, 52, 255, .08), transparent 60%),
+                  radial-gradient(900px 600px at -10% 10%, rgba(20, 164, 255, .08), transparent 60%),
+                  var(--bg);
+    }
+    header {
+      position: sticky;
+      top: 0; z-index: 10;
+      backdrop-filter: blur(8px);
+      background: rgba(11,12,16,.6);
+      border-bottom: 1px solid var(--border);
+    }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 16px; }
+    .row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 900px) { .row { grid-template-columns: 380px 1fr; } }
+
+    .titlebar { display:flex; align-items:center; gap:12px; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: var(--shadow);
+    }
+    h1 { font-size: 20px; margin: 0; letter-spacing: .2px; }
+    .muted { color: var(--muted); font-size: 12px; }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.08));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card .head { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .card .body { padding: 16px; }
+
+    input[type="text"], textarea {
+      width: 100%; background: #0f1117; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 12px 12px; outline: none; font-size: 14px;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    input[type="file"] { color: var(--muted); font-size: 12px; }
+
+    .btns { display:flex; gap:10px; flex-wrap: wrap; }
+    button, .btn {
+      appearance: none; border: 0; cursor: pointer; color: white;
+      background: linear-gradient(135deg, var(--accent), #1f75ff);
+      padding: 10px 14px; border-radius: 12px; font-weight: 600; font-size: 14px;
+      box-shadow: var(--shadow);
+    }
+    .btn.secondary { background: #1b1f2a; color: var(--text); border: 1px solid var(--border); }
+    .btn.ghost { background: transparent; border: 1px dashed var(--border); color: var(--muted); }
+    .btn.danger { background: linear-gradient(135deg, #ff5f8f, var(--danger)); }
+
+    .feed { display: grid; gap: 12px; }
+    .post-card { display: grid; grid-template-columns: 100px 1fr; gap: 12px; padding: 14px; }
+    .thumb { width: 100%; aspect-ratio: 1.3/1; background: #0f1117; border: 1px solid var(--border); border-radius: 10px; object-fit: cover; }
+    .post-title { font-weight: 700; margin: 0; font-size: 16px; }
+    .post-meta { display:flex; align-items:center; gap: 10px; color: var(--muted); font-size: 12px; margin-top: 6px; }
+    .post-actions { display:flex; align-items:center; gap:10px; margin-top: 10px; }
+
+    .like { display:inline-flex; align-items:center; gap:6px; border: 1px solid var(--border); background: #151823; padding: 8px 10px; border-radius: 999px; }
+    .like svg { width: 16px; height: 16px; }
+    .like.liked { background: rgba(255,73,118,.12); border-color: rgba(255,73,118,.3); }
+
+    .empty { text-align:center; color: var(--muted); padding: 30px 10px; border: 1px dashed var(--border); border-radius: 14px; }
+
+    /* Modal */
+    dialog::backdrop { background: rgba(3,5,14,.7); backdrop-filter: blur(4px); }
+    dialog { width: min(820px, 96vw); border: 1px solid var(--border); border-radius: 18px; padding: 0; background: #0f1117; color: var(--text); box-shadow: var(--shadow); }
+    .modal-head { display:flex; align-items:center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--border); }
+    .modal-body { display:grid; gap: 16px; padding: 16px; }
+    .post-img { width: 100%; border-radius: 14px; border: 1px solid var(--border); object-fit: cover; }
+
+    .comments { display: grid; gap: 12px; }
+    .comment { border: 1px solid var(--border); background: #0d1019; border-radius: 12px; padding: 10px 12px; }
+    .comment .who { font-weight: 700; font-size: 13px; }
+    .comment .when { color: var(--muted); font-size: 11px; }
+
+    .toolbar { display:flex; align-items:center; gap: 12px; color: var(--muted); }
+
+    .hint { font-size: 12px; color: var(--muted); }
+    .right { text-align:right; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap titlebar">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>컴동 블로그</h1>
+        <div class="muted">HTML + LocalStorage로 만드는 단일 파일 프로토타입</div>
+      </div>
+      <div style="margin-left:auto" class="toolbar">
+        <label for="nickname">닉네임</label>
+        <input id="nickname" type="text" placeholder="예: okya_dev" style="width: 160px"/>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="row">
+      <!-- 작성 패널 -->
+      <section class="card" aria-labelledby="write-head">
+        <div class="head">
+          <strong id="write-head">새 글 쓰기</strong>
+        </div>
+        <div class="body" id="write">
+          <input id="title" type="text" placeholder="제목" aria-label="제목" />
+          <div style="height:10px"></div>
+          <textarea id="content" placeholder="무슨 생각을 기록할까요? (마크다운 일부 지원: **굵게**, *기울임*)" aria-label="내용"></textarea>
+          <div style="height:10px"></div>
+          <div class="toolbar">
+            <input id="image" type="file" accept="image/*" />
+            <span class="hint">이미지는 선택 사항입니다.</span>
+          </div>
+          <div id="preview" class="hint"></div>
+          <div style="height:12px"></div>
+          <div class="btns">
+            <button id="publish">게시하기</button>
+            <button class="btn secondary" id="reset">초기화</button>
+            <button class="btn ghost" id="seed">예시 글 넣기</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 피드 -->
+      <section class="card" aria-labelledby="feed-head">
+        <div class="head">
+          <strong id="feed-head">전체 피드</strong>
+        </div>
+        <div class="body">
+          <div id="feed" class="feed" role="feed" aria-live="polite"></div>
+          <div id="empty" class="empty" hidden>아직 게시된 글이 없어요. 첫 글을 올려보세요!</div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <!-- 상세 보기 모달 -->
+  <dialog id="viewer" aria-label="게시글 상세">
+    <div class="modal-head">
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="btn secondary" id="closeViewer" aria-label="닫기">닫기</button>
+        <div class="muted" id="detailMeta"></div>
+      </div>
+      <button class="btn danger" id="deletePost" title="이 글 삭제">삭제</button>
+    </div>
+    <div class="modal-body">
+      <h2 id="detailTitle" style="margin:0"></h2>
+      <img id="detailImg" class="post-img" alt="게시 이미지" hidden />
+      <div id="detailContent"></div>
+
+      <div class="post-actions">
+        <button class="like" id="detailLikeBtn" aria-label="좋아요">
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.1 8.64l-.1.1-.11-.11C10.14 6.9 7.1 7.5 6 9.74 5.11 11.51 5.74 13.7 7.5 14.58L12 18l4.5-3.42c1.76-.88 2.39-3.07 1.5-4.84-1.1-2.24-4.14-2.84-5.9-1.1z"/></svg>
+          <span id="detailLikeCount">0</span>
+        </button>
+      </div>
+
+      <section class="comments" aria-labelledby="comments-head">
+        <h3 id="comments-head" style="margin:0">댓글</h3>
+        <div class="toolbar">
+          <input id="commentInput" type="text" placeholder="댓글을 입력하세요" aria-label="댓글" />
+          <button id="addComment">등록</button>
+        </div>
+        <div id="commentList"></div>
+      </section>
+    </div>
+  </dialog>
+
+  <template id="postCardT">
+    <article class="post-card card" role="article">
+      <img class="thumb" alt="썸네일" />
+      <div>
+        <h3 class="post-title"></h3>
+        <div class="post-meta"></div>
+        <div class="post-actions">
+          <button class="like" aria-label="좋아요"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.1 8.64l-.1.1-.11-.11C10.14 6.9 7.1 7.5 6 9.74 5.11 11.51 5.74 13.7 7.5 14.58L12 18l4.5-3.42c1.76-.88 2.39-3.07 1.5-4.84-1.1-2.24-4.14-2.84-5.9-1.1z"/></svg><span class="count">0</span></button>
+          <button class="btn secondary open">열기</button>
+        </div>
+      </div>
+    </article>
+  </template>
+
+  <script>
+    /**
+     * 초간단 블로그 (프론트엔드만, 저장은 localStorage)
+     * - 게시글(이미지 첨부), 댓글, 좋아요, 피드 보기
+     * - 실제 배포/공유용으로는 백엔드(API, DB)가 필요합니다.
+     */
+
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+
+    // 상태
+    const state = {
+      posts: [], // {id,title,content,imageData,author,createdAt,likes,comments:[{author,text,createdAt}], liked}
+      current: null // 현재 보고있는 글 id
+    };
+
+    const STORAGE_KEY = 'okya_blog_v1';
+    const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+    const fmt = (ts) => new Date(ts).toLocaleString();
+
+    // 로드/세이브
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) state.posts = JSON.parse(raw);
+      } catch (e) {
+        console.warn('load fail', e);
+        state.posts = [];
+      }
+    }
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.posts));
+    }
+
+    // 렌더 피드
+    function renderFeed() {
+      const feed = $('#feed');
+      feed.innerHTML = '';
+      const empty = $('#empty');
+      empty.hidden = state.posts.length !== 0;
+
+      // 최신 순 정렬
+      const sorted = [...state.posts].sort((a,b)=>b.createdAt - a.createdAt);
+
+      for (const p of sorted) {
+        const t = $('#postCardT').content.cloneNode(true);
+        const card = t.querySelector('.post-card');
+        const thumb = t.querySelector('.thumb');
+        const title = t.querySelector('.post-title');
+        const meta = t.querySelector('.post-meta');
+        const likeBtn = t.querySelector('.like');
+        const likeCount = t.querySelector('.count');
+        const openBtn = t.querySelector('.open');
+
+        if (p.imageData) {
+          thumb.src = p.imageData; thumb.hidden = false;
+        } else {
+          thumb.hidden = true;
+        }
+        title.textContent = p.title || '(제목 없음)';
+        meta.textContent = `${p.author || '익명'} · ${fmt(p.createdAt)} · 댓글 ${p.comments?.length || 0}개`;
+        likeCount.textContent = p.likes || 0;
+        likeBtn.classList.toggle('liked', !!p.liked);
+
+        likeBtn.addEventListener('click', () => toggleLike(p.id));
+        openBtn.addEventListener('click', () => openDetail(p.id));
+
+        feed.appendChild(t);
+      }
+    }
+
+    // 상세 열기
+    function openDetail(id) {
+      const p = state.posts.find(x=>x.id===id);
+      if (!p) return;
+      state.current = id;
+      $('#detailTitle').textContent = p.title || '(제목 없음)';
+      $('#detailContent').innerHTML = renderMarkdown(p.content || '');
+      const img = $('#detailImg');
+      if (p.imageData) { img.src = p.imageData; img.hidden = false; } else { img.hidden = true; }
+      $('#detailMeta').textContent = `${p.author || '익명'} · ${fmt(p.createdAt)}`;
+      $('#detailLikeCount').textContent = p.likes || 0;
+      $('#detailLikeBtn').classList.toggle('liked', !!p.liked);
+      renderComments(p);
+      $('#viewer').showModal();
+    }
+
+    // 상세 닫기
+    $('#closeViewer').addEventListener('click', () => {
+      $('#viewer').close();
+    });
+
+    // 글 삭제
+    $('#deletePost').addEventListener('click', () => {
+      const id = state.current;
+      if (!id) return;
+      const ok = confirm('정말 이 글을 삭제할까요?');
+      if (!ok) return;
+      state.posts = state.posts.filter(p=>p.id!==id);
+      save();
+      renderFeed();
+      $('#viewer').close();
+    });
+
+    // 좋아요 토글
+    function toggleLike(id) {
+      const p = state.posts.find(x=>x.id===id);
+      if (!p) return;
+      p.liked = !p.liked;
+      p.likes = (p.likes || 0) + (p.liked ? 1 : -1);
+      if (p.likes < 0) p.likes = 0;
+      save();
+      renderFeed();
+      if (state.current === id) {
+        $('#detailLikeBtn').classList.toggle('liked', !!p.liked);
+        $('#detailLikeCount').textContent = p.likes;
+      }
+    }
+
+    $('#detailLikeBtn').addEventListener('click', () => {
+      if (!state.current) return;
+      toggleLike(state.current);
+    });
+
+    // 댓글 렌더/추가
+    function renderComments(p) {
+      const list = $('#commentList');
+      list.innerHTML = '';
+      (p.comments || []).forEach(c => {
+        const el = document.createElement('div');
+        el.className = 'comment';
+        el.innerHTML = `<div class="who">${escapeHtml(c.author || '익명')}</div>
+                        <div style="margin:6px 0">${escapeHtml(c.text)}</div>
+                        <div class="when">${fmt(c.createdAt)}</div>`;
+        list.appendChild(el);
+      });
+    }
+
+    $('#addComment').addEventListener('click', () => {
+      const id = state.current; if (!id) return;
+      const p = state.posts.find(x=>x.id===id); if (!p) return;
+      const text = $('#commentInput').value.trim();
+      if (!text) return alert('댓글을 입력하세요.');
+      p.comments ||= [];
+      p.comments.push({ author: $('#nickname').value.trim() || '익명', text, createdAt: Date.now() });
+      $('#commentInput').value = '';
+      save();
+      renderComments(p);
+      renderFeed();
+    });
+
+    // 게시하기
+    $('#publish').addEventListener('click', async () => {
+      const title = $('#title').value.trim();
+      const content = $('#content').value.trim();
+      const author = $('#nickname').value.trim() || '익명';
+      let imageData = null;
+      const file = $('#image').files?.[0];
+      if (file) imageData = await fileToDataUrl(file);
+
+      if (!title && !content && !imageData) {
+        return alert('제목이나 내용 중 하나는 입력해야 합니다.');
+      }
+
+      const post = {
+        id: uid(), title, content, author, imageData,
+        createdAt: Date.now(), likes: 0, liked: false, comments: []
+      };
+      state.posts.push(post);
+      save();
+      clearWrite();
+      renderFeed();
+      openDetail(post.id);
+    });
+
+    // 초기화
+    $('#reset').addEventListener('click', clearWrite);
+    function clearWrite() {
+      $('#title').value = '';
+      $('#content').value = '';
+      $('#image').value = '';
+      $('#preview').innerHTML = '';
+    }
+
+    // 예시 데이터
+    $('#seed').addEventListener('click', () => {
+      if (!confirm('예시 글 2개를 추가할까요?')) return;
+      const now = Date.now();
+      state.posts.push(
+        { id: uid(), title: '동아리 블로그 시작!', content: '우리 컴동 블로그의 첫 글이에요. **목표**:\n- 글쓰기/댓글/하트\n- 나중엔 백엔드 붙이기!', author: '관리자', imageData: null, createdAt: now-3600_000, likes: 2, liked: false, comments:[{author:'민수', text:'좋아요!', createdAt: now-3500_000}]},
+        { id: uid(), title: '이미지도 올라가요', content: '이미지 첨부가 됩니다. 로컬 저장이라 새 브라우저면 안 보일 수 있어요.', author: 'okya', imageData: sampleImage(), createdAt: now-1800_000, likes: 1, liked: false, comments:[]}
+      );
+      save();
+      renderFeed();
+    });
+
+    // 이미지 프리뷰
+    $('#image').addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      const preview = $('#preview');
+      if (!file) { preview.innerHTML = ''; return; }
+      const url = await fileToDataUrl(file);
+      preview.innerHTML = `<div class="hint">미리보기</div><img src="${url}" alt="미리보기" style="max-width:100%; border-radius:12px; border:1px solid var(--border)"/>`;
+    });
+
+    // 유틸
+    function fileToDataUrl(file) {
+      return new Promise((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result);
+        fr.onerror = reject;
+        fr.readAsDataURL(file);
+      });
+    }
+
+    function escapeHtml(str) {
+      return (str || '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[s]));
+    }
+
+    // 아주 간단한 마크다운(**, *) 처리
+    function renderMarkdown(text) {
+      let html = escapeHtml(text);
+      html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+      html = html.replace(/\n/g, '<br/>');
+      return html;
+    }
+
+    function sampleImage() {
+      // 1x1 transparent png data URL placeholder (will look empty but occupies the image slot)
+      return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9U4w8wAAAAAASUVORK5CYII=';
+    }
+
+    // 초기화
+    load();
+    renderFeed();
+  </script>
+</body>
+</html>
